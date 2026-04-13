@@ -389,7 +389,7 @@ class HermesFullSync:
             return None
 
     def run_hermes(self):
-        """Start Hermes: gateway in background + web dashboard on port 7860."""
+        """Start Hermes: web dashboard on port 7860, gateway in background if messaging tokens configured."""
         log_dir = HERMES_DATA / "logs"
         log_dir.mkdir(parents=True, exist_ok=True)
 
@@ -405,29 +405,37 @@ class HermesFullSync:
         env = os.environ.copy()
         env["HERMES_HOME"] = str(HERMES_DATA)
         env["GATEWAY_ALLOW_ALL_USERS"] = "true"
+        # Prevent gateway from grabbing port 7860
+        env.pop("API_SERVER_ENABLED", None)
+        env.pop("API_SERVER_PORT", None)
 
-        # ── 1. Start gateway in background (messaging platforms) ──────
-        # Gateway handles Telegram, Discord, WhatsApp, etc.
-        # API server disabled here (dashboard will serve port 7860)
-        gateway_env = env.copy()
-        gateway_env["API_SERVER_ENABLED"] = "false"
-        gateway_cmd = [hermes_bin, "gateway"]
-
-        print(f"[SYNC] Starting gateway (messaging platforms)...")
-        self.gateway_proc = self._start_process(
-            gateway_cmd, "Gateway", gateway_env, log_dir / "gateway.log"
-        )
-
-        # ── 2. Patch web dashboard CORS for HF Spaces ────────────────
+        # ── 1. Patch web dashboard CORS for HF Spaces ────────────────
         self._patch_web_server_cors()
 
-        # ── 3. Start web dashboard on port 7860 (HF Spaces frontend) ─
+        # ── 2. Start web dashboard on port 7860 (HF Spaces frontend) ─
         dashboard_cmd = [hermes_bin, "dashboard", "--host", "0.0.0.0", "--port", "7860", "--no-open"]
-
         print(f"[SYNC] Starting web dashboard on port 7860...")
         dashboard_proc = self._start_process(
             dashboard_cmd, "Dashboard", env, log_dir / "dashboard.log"
         )
+
+        # ── 3. Start gateway in background if messaging tokens are set ─
+        has_messaging = any(os.environ.get(k) for k in [
+            "TELEGRAM_BOT_TOKEN", "DISCORD_BOT_TOKEN", "SLACK_BOT_TOKEN",
+            "WHATSAPP_ENABLED", "SIGNAL_ENABLED",
+        ])
+        if has_messaging:
+            time.sleep(2)  # Let dashboard bind 7860 first
+            gateway_env = env.copy()
+            gateway_cmd = [hermes_bin, "gateway"]
+            print(f"[SYNC] Starting gateway (messaging platforms)...")
+            self.gateway_proc = self._start_process(
+                gateway_cmd, "Gateway", gateway_env, log_dir / "gateway.log"
+            )
+        else:
+            print("[SYNC] No messaging tokens configured — gateway skipped")
+            print("[SYNC] Set TELEGRAM_BOT_TOKEN etc. in Space Secrets to enable messaging")
+            self.gateway_proc = None
 
         return dashboard_proc
 
