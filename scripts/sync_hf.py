@@ -21,6 +21,7 @@ import json
 import shutil
 import tempfile
 import traceback
+from http.server import HTTPServer, BaseHTTPRequestHandler
 from pathlib import Path
 from datetime import datetime
 # Set timeout BEFORE importing huggingface_hub
@@ -327,6 +328,66 @@ class HermesFullSync:
             print(f"[SYNC] Periodic sync triggered at {datetime.now().isoformat()}")
             self.save_to_repo()
 
+    # ── Health check HTTP server (port 7860) ─────────────────────────
+    # HF Spaces requires an HTTP service on app_port to detect the app
+    # is running. Hermes gateway is a messaging client (no HTTP server),
+    # so we run a lightweight status page on 7860.
+
+    def start_health_server(self):
+        """Start a simple HTTP server on port 7860 for HF Spaces health check."""
+        agent_name = AGENT_NAME
+        hermes_process_ref = [None]  # mutable ref for the handler
+        self._hermes_process_ref = hermes_process_ref
+
+        class HealthHandler(BaseHTTPRequestHandler):
+            def do_GET(self):
+                proc = hermes_process_ref[0]
+                running = proc is not None and proc.poll() is None
+                status = "running" if running else "starting"
+                body = json.dumps({
+                    "status": status,
+                    "agent": agent_name,
+                    "framework": "hermes-agent",
+                    "source": "https://github.com/NousResearch/hermes-agent",
+                    "updated_at": datetime.now().isoformat(),
+                })
+                html = f"""<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>{agent_name}</title>
+<style>
+body {{ font-family: system-ui, sans-serif; max-width: 640px; margin: 60px auto; padding: 20px; background: #0d1117; color: #c9d1d9; }}
+h1 {{ color: #58a6ff; }} .status {{ padding: 12px; border-radius: 8px; background: #161b22; border: 1px solid #30363d; margin: 20px 0; }}
+.dot {{ display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; background: {"#3fb950" if running else "#d29922"}; }}
+a {{ color: #58a6ff; }}
+pre {{ background: #161b22; padding: 16px; border-radius: 8px; overflow-x: auto; border: 1px solid #30363d; }}
+</style></head><body>
+<h1>{agent_name}</h1>
+<div class="status"><span class="dot"></span> Hermes Agent is <b>{status}</b></div>
+<p>Self-improving AI assistant powered by <a href="https://github.com/NousResearch/hermes-agent">Hermes Agent</a> from Nous Research.</p>
+<h3>API Status</h3>
+<pre>{body}</pre>
+<p><small>Deployed via <a href="https://github.com/democra-ai/HuggingHermes">HuggingHermes</a> on HuggingFace Spaces</small></p>
+</body></html>"""
+                if self.path == '/api/state' or self.path == '/status':
+                    self.send_response(200)
+                    self.send_header('Content-Type', 'application/json')
+                    self.send_header('Access-Control-Allow-Origin', '*')
+                    self.end_headers()
+                    self.wfile.write(body.encode())
+                else:
+                    self.send_response(200)
+                    self.send_header('Content-Type', 'text/html; charset=utf-8')
+                    self.end_headers()
+                    self.wfile.write(html.encode())
+
+            def log_message(self, format, *args):
+                pass  # Suppress access logs
+
+        server = HTTPServer(('0.0.0.0', 7860), HealthHandler)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        print("[SYNC] Health check server started on port 7860")
+        return server
+
     # ── Application runner ─────────────────────────────────────────────
 
     def run_hermes(self):
@@ -434,9 +495,14 @@ def main():
         t = threading.Thread(target=sync.background_sync_loop, args=(stop_event,), daemon=True)
         t.start()
 
-        # 3. Start application
+        # 3. Start health check HTTP server (port 7860 — required by HF Spaces)
+        health_server = sync.start_health_server()
+
+        # 4. Start application
         t0 = time.time()
         process = sync.run_hermes()
+        if process and hasattr(sync, '_hermes_process_ref'):
+            sync._hermes_process_ref[0] = process
         print(f"[TIMER] run_hermes launch: {time.time() - t0:.1f}s")
         print(f"[TIMER] Total startup (init → app launched): {time.time() - t_main_start:.1f}s")
 
