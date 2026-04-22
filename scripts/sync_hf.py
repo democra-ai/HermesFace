@@ -240,6 +240,7 @@ class HermesFullSync:
                     "*.pid",        # PID files
                     "__pycache__",  # Python cache
                     "scripts/*",    # HermesFace scripts — from git, not data
+                    "assets/*",     # Static assets — from git, not data
                 ],
             )
             print(f"[SYNC] Upload completed at {datetime.now().isoformat()}")
@@ -330,20 +331,43 @@ class HermesFullSync:
     # ── Application runner ─────────────────────────────────────────────
 
     def _patch_web_server_cors(self):
-        """Patch Hermes web_server.py to allow HF Spaces origins (not just localhost)."""
+        """Patch Hermes web_server.py:
+        - Allow any origin (HF Spaces iframe, custom domains)
+        - Allow iframe embedding in huggingface.co + *.hf.space
+        """
         ws_path = APP_DIR / "hermes_cli" / "web_server.py"
         if not ws_path.exists():
             return
         try:
             code = ws_path.read_text()
+            changed = False
+
             old_cors = 'allow_origin_regex=r"^https?://(localhost|127\\.0\\.0\\.1)(:\\d+)?$"'
             new_cors = 'allow_origins=["*"]'
             if old_cors in code:
                 code = code.replace(old_cors, new_cors)
-                ws_path.write_text(code)
+                changed = True
                 print("[SYNC] Patched web_server.py CORS for HF Spaces")
+
+            # Neutralise X-Frame-Options so HF Spaces can embed the dashboard.
+            for pat in ('X-Frame-Options", "DENY"', 'X-Frame-Options", "SAMEORIGIN"'):
+                if pat in code:
+                    code = code.replace(pat, 'X-Frame-Options", "ALLOWALL"')
+                    changed = True
+                    print("[SYNC] Relaxed X-Frame-Options for HF Spaces")
+
+            # Relax CSP frame-ancestors if present.
+            csp_old = 'frame-ancestors \'none\''
+            csp_new = "frame-ancestors 'self' https://huggingface.co https://*.hf.space"
+            if csp_old in code:
+                code = code.replace(csp_old, csp_new)
+                changed = True
+                print("[SYNC] Relaxed CSP frame-ancestors for HF Spaces")
+
+            if changed:
+                ws_path.write_text(code)
         except Exception as e:
-            print(f"[SYNC] CORS patch failed (non-fatal): {e}")
+            print(f"[SYNC] web_server patch failed (non-fatal): {e}")
 
     def _start_process(self, cmd, label, env, log_path):
         """Helper to start a subprocess with output logging."""

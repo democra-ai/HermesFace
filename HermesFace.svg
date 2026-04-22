@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" role="img" aria-label="HermesFace">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#4A148C"/>
+      <stop offset="0.5" stop-color="#283593"/>
+      <stop offset="1" stop-color="#1565C0"/>
+    </linearGradient>
+    <linearGradient id="trident" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFEB3B"/>
+      <stop offset="1" stop-color="#FFC107"/>
+    </linearGradient>
+    <radialGradient id="halo" cx="0.5" cy="0.5" r="0.7">
+      <stop offset="0" stop-color="#7E57C2" stop-opacity="0.45"/>
+      <stop offset="1" stop-color="#7E57C2" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <circle cx="360" cy="315" r="300" fill="url(#halo)"/>
+
+  <!-- Trident glyph -->
+  <g transform="translate(240 120)" filter="url(#glow)">
+    <path d="M120 0 L120 70 M60 40 L60 110 M180 40 L180 110
+             M20 80 Q120 140 220 80
+             M120 70 L120 330
+             M120 330 Q70 340 60 370
+             M120 330 Q170 340 180 370
+             M60 370 L100 370 M140 370 L180 370
+             M80 370 L80 410 M160 370 L160 410"
+          stroke="url(#trident)" stroke-width="14" fill="none"
+          stroke-linecap="round" stroke-linejoin="round"/>
+    <!-- Trident tips -->
+    <path d="M56 40 L60 10 L64 40 Z M116 10 L120 -10 L124 10 L124 70 L116 70 Z M176 40 L180 10 L184 40 Z"
+          fill="url(#trident)"/>
+  </g>
+
+  <!-- Wordmark -->
+  <g transform="translate(560 250)" fill="#FFFFFF" font-family="'Inter','Helvetica Neue',Arial,sans-serif">
+    <text x="0" y="0" font-size="128" font-weight="800" letter-spacing="-3">HermesFace</text>
+    <text x="0" y="60" font-size="30" font-weight="500" fill="#E1BEE7" letter-spacing="1">
+      Your always-on, self-improving AI assistant
+    </text>
+    <text x="0" y="100" font-size="24" font-weight="400" fill="#B39DDB" letter-spacing="0.5">
+      Free · 16 GB RAM · 16+ channels · No hardware required
+    </text>
+    <g transform="translate(0 150)" font-size="18" font-weight="600" fill="#FFFFFF">
+      <rect x="0" y="-24" width="140" height="36" rx="18" fill="#7C4DFF" opacity="0.9"/>
+      <text x="70" y="0" text-anchor="middle">Hermes Agent</text>
+      <rect x="152" y="-24" width="160" height="36" rx="18" fill="#448AFF" opacity="0.9"/>
+      <text x="232" y="0" text-anchor="middle">HF Spaces · Free</text>
+      <rect x="324" y="-24" width="120" height="36" rx="18" fill="#26C6DA" opacity="0.9"/>
+      <text x="384" y="0" text-anchor="middle">MIT · 2026</text>
+    </g>
+  </g>
+</svg>

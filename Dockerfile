@@ -69,11 +69,18 @@ RUN mkdir -p /opt/data/cron /opt/data/sessions /opt/data/logs /opt/data/hooks \
 
 USER hermes
 
-# ── HermesFace scripts (persistence + entrypoint) ────────────────────
-ARG CACHE_BUST=2026-04-13-v1
+# ── HermesFace scripts (persistence + entrypoint + DNS + assets) ──────
+ARG CACHE_BUST=2026-04-22-v2
 RUN echo "Build: ${CACHE_BUST}"
 COPY --chown=hermes:hermes scripts /opt/data/scripts
-RUN chmod +x /opt/data/scripts/entrypoint.sh
+COPY --chown=hermes:hermes assets /opt/data/assets
+RUN chmod +x /opt/data/scripts/entrypoint.sh \
+             /opt/data/scripts/dns-resolve.py \
+             /opt/data/scripts/hermes_persist.py \
+             /opt/data/scripts/save_to_dataset.py \
+             /opt/data/scripts/save_to_dataset_atomic.py \
+             /opt/data/scripts/restore_from_dataset.py \
+             /opt/data/scripts/restore_from_dataset_atomic.py
 
 ENV HERMES_HOME=/opt/data
 ENV PATH="/opt/hermes/.venv/bin:$PATH"

@@ -9,6 +9,18 @@ echo "[entrypoint] ===================================================="
 HERMES_HOME="/opt/data"
 INSTALL_DIR="/opt/hermes"
 
+# ── DNS pre-resolution (background — non-blocking) ────────────────────────
+# Resolves Telegram / WhatsApp / Discord domains via DoH when HF Spaces
+# system DNS refuses them. Writes /tmp/dns-resolved.json for dns-fix.cjs
+# and appends /etc/hosts for Python processes.
+echo "[entrypoint] Starting DNS resolution in background..."
+python3 /opt/data/scripts/dns-resolve.py /tmp/dns-resolved.json 2>&1 &
+DNS_PID=$!
+echo "[entrypoint] DNS resolver PID: $DNS_PID"
+
+# Enable Node.js DNS fix preload for playwright / whatsapp-bridge / web build.
+export NODE_OPTIONS="${NODE_OPTIONS:+$NODE_OPTIONS }--require /opt/data/scripts/dns-fix.cjs"
+
 # ── Activate virtual environment ─────────────────────────────────────────
 if [ -f "${INSTALL_DIR}/.venv/bin/activate" ]; then
   source "${INSTALL_DIR}/.venv/bin/activate"

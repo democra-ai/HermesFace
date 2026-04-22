@@ -6,7 +6,9 @@ colorTo: blue
 sdk: docker
 pinned: false
 license: mit
-short_description: Free always-on AI assistant, no hardware required
+datasets:
+  - tao-shen/HermesFace-data
+short_description: Free always-on self-improving AI agent, no hardware required
 app_port: 7860
 tags:
   - huggingface
@@ -34,26 +36,22 @@ tags:
 ---
 
 <div align="center">
+  <img src="HermesFace.svg" alt="HermesFace" width="720"/>
+  <br/><br/>
+  <strong>Your always-on, self-improving AI agent — free, no server needed</strong>
+  <br/>
+  <sub>Telegram · Discord · Slack · WhatsApp · Signal · WeChat · 16+ channels · Self-improving skills · Persistent memory · One-click deploy</sub>
+  <br/><br/>
 
-# 🔱 HermesFace
-
-### Your always-on, self-improving AI assistant — free, no server needed
-
-**No Mac Mini? No problem.** Get a fully-featured AI assistant running 24/7
-on HuggingFace's free tier — 2 vCPU, 16 GB RAM, 50 GB storage, zero cost.
-
-<sub>Telegram · Discord · Slack · WhatsApp · Signal · WeChat · 16+ channels · Self-improving skills · Persistent memory</sub>
-
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Hugging Face](https://img.shields.io/badge/🤗-HF%20Space-yellow)](https://huggingface.co/spaces/tao-shen/HermesFace)
-[![GitHub](https://img.shields.io/badge/GitHub-Repository-181717?logo=github)](https://github.com/democra-ai/HermesFace)
-[![Hermes Agent](https://img.shields.io/badge/Hermes_Agent-v0.9.0-blueviolet)](https://github.com/NousResearch/hermes-agent)
-[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker)](https://www.docker.com/)
-[![OpenAI Compatible](https://img.shields.io/badge/OpenAI--compatible-API-green)](https://github.com/NousResearch/hermes-agent)
-[![Telegram](https://img.shields.io/badge/Telegram-Enabled-26A5E4?logo=telegram)](https://telegram.org/)
-[![Discord](https://img.shields.io/badge/Discord-Enabled-5865F2?logo=discord)](https://discord.com/)
-[![Free Tier](https://img.shields.io/badge/Free%20Tier-16GB%20RAM-brightgreen)](https://huggingface.co/spaces)
-
+  [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+  [![Hugging Face](https://img.shields.io/badge/🤗-HF%20Space-yellow)](https://huggingface.co/spaces/tao-shen/HermesFace)
+  [![GitHub](https://img.shields.io/badge/GitHub-Repository-181717?logo=github)](https://github.com/democra-ai/HermesFace)
+  [![Hermes Agent](https://img.shields.io/badge/Hermes_Agent-Powered-blueviolet)](https://github.com/NousResearch/hermes-agent)
+  [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker)](https://www.docker.com/)
+  [![OpenAI Compatible](https://img.shields.io/badge/OpenAI--compatible-API-green)](https://github.com/NousResearch/hermes-agent)
+  [![Telegram](https://img.shields.io/badge/Telegram-Enabled-26A5E4?logo=telegram)](https://telegram.org/)
+  [![Discord](https://img.shields.io/badge/Discord-Enabled-5865F2?logo=discord)](https://discord.com/)
+  [![Free Tier](https://img.shields.io/badge/Free%20Tier-16GB%20RAM-brightgreen)](https://huggingface.co/spaces)
 </div>
 
 ---
@@ -78,24 +76,9 @@ In about 5 minutes, you'll have a **free, always-on, self-improving AI assistant
 
 ## Architecture
 
-```
-┌─────────────────────────────────────────────────────┐
-│  HuggingFace Space (Docker, cpu-basic)              │
-│                                                     │
-│  ┌──────────────┐    ┌────────────────────────────┐ │
-│  │ sync_hf.py   │───▶│  Hermes Agent              │ │
-│  │ (persistence │    │  ├─ Web Dashboard (:7860)   │ │
-│  │  manager)    │    │  ├─ Gateway (messaging)     │ │
-│  │              │    │  ├─ Skills Engine            │ │
-│  └──────┬───────┘    │  ├─ Memory System           │ │
-│         │            │  ├─ Cron Scheduler           │ │
-│         ▼            │  └─ 47 Tools                 │ │
-│  ┌──────────────┐    └────────────────────────────┘ │
-│  │ HF Dataset   │  ◀── Auto-sync every 60s         │
-│  │ (private)    │      Config, skills, memories     │
-│  └──────────────┘                                   │
-└─────────────────────────────────────────────────────┘
-```
+<div align="center">
+  <img src="assets/architecture.svg" alt="Architecture" width="720"/>
+</div>
 
 ---
 
@@ -104,6 +87,8 @@ In about 5 minutes, you'll have a **free, always-on, self-improving AI assistant
 ### 1. Duplicate this Space
 
 Click **Duplicate this Space** on the [HermesFace Space page](https://huggingface.co/spaces/tao-shen/HermesFace).
+
+> **After duplicating:** edit your Space's `README.md` and update the `datasets:` field in the YAML header to point to your own dataset repo (e.g. `your-name/YourSpace-data`), or remove it entirely. This prevents your Space from appearing as linked to the original dataset.
 
 ### 2. Set Secrets
 
@@ -192,10 +177,35 @@ docker build -t hermesface .
 docker run -p 7860:7860 --env-file .env hermesface
 ```
 
+## Security
+
+- **Environment isolation** — each Space runs in its own Docker container, sandboxed from your local machine. Unlike running Hermes Agent locally (where it has full system privileges), cloud deployment limits the blast radius.
+- **Secrets stay server-side** — API keys and tokens are set as HF Spaces Repository Secrets, never exposed to the browser or the public Dataset.
+- **Private backups** — the Dataset repo is created as private by default.
+- **DNS over HTTPS** — `dns-resolve.py` bypasses HF Spaces' DNS blocks on Telegram / Discord / WhatsApp via Cloudflare + Google DoH, writing `/etc/hosts` (for Python) and `/tmp/dns-resolved.json` (consumed by the Node `dns-fix.cjs` preload).
+
+## Manual backup / restore
+
+For one-off snapshots outside the 60-second sync cycle, use the CLI utilities in `scripts/`:
+
+```bash
+# Full tar.gz snapshot → Dataset repo (keeps last 5, auto-rotates)
+python3 scripts/hermes_persist.py save
+
+# Restore latest snapshot into /opt/data
+python3 scripts/hermes_persist.py load
+
+# Inspect current backups
+python3 scripts/hermes_persist.py status
+```
+
+The atomic variants (`save_to_dataset_atomic.py`, `restore_from_dataset_atomic.py`) use HF commit operations with checksum metadata for file-granular restore — useful when you only want to roll back a single file.
+
 ## Acknowledgments
 
-- **[Hermes Agent](https://github.com/NousResearch/hermes-agent)** by [Nous Research](https://nousresearch.com/) — the self-improving AI assistant framework
+- **[Hermes Agent](https://github.com/NousResearch/hermes-agent)** by [Nous Research](https://nousresearch.com/) — the self-improving AI assistant framework HermesFace wraps
 - **[HuggingFace Spaces](https://huggingface.co/spaces)** — free Docker hosting for ML apps
+- **[HuggingClaw](https://github.com/tao-shen/HuggingClaw)** — sibling project that pioneered the atomic-tar persistence + DoH DNS escape-hatch patterns HermesFace adopts
 
 ## License
 
